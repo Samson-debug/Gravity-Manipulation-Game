@@ -1,8 +1,12 @@
 using UnityEngine;
+using System;
 
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class PlayerController : MonoBehaviour
 {
+    public static event Action OnOrbCollected;
+    public static event Action OnPlayerDied;
+
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
     public float jumpForce = 5f;
@@ -26,11 +30,28 @@ public class PlayerController : MonoBehaviour
     private bool isHologramActive = false;
     private bool isGroundedCustom = false;
     private bool jumpRequested = false;
+    private bool canMove = true;
     
     //Animation const
     private readonly int IsFallingHash = Animator.StringToHash("IsFalling");
     private readonly int IsRunningHash = Animator.StringToHash("IsRunning");
     
+    private void OnEnable()
+    {
+        GameManager.OnGameOver += HandleGameOver;
+    }
+
+    private void OnDisable()
+    {
+        GameManager.OnGameOver -= HandleGameOver;
+    }
+
+    private void HandleGameOver(string message)
+    {
+        canMove = false;
+        jumpRequested = false;
+    }
+
     private void Start()
     {
         capsuleCollider = GetComponent<CapsuleCollider>();
@@ -47,11 +68,14 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        HandleGravityChange();
-        
-        //Queue Jump
-        if (Input.GetButtonDown("Jump") && isGroundedCustom){
-            jumpRequested = true;
+        if (canMove)
+        {
+            HandleGravityChange();
+            
+            //Queue Jump
+            if (Input.GetButtonDown("Jump") && isGroundedCustom){
+                jumpRequested = true;
+            }
         }
 
         HandleAnimations();
@@ -60,7 +84,16 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         CheckGrounded();
-        HandleMovement();
+        
+        if (canMove)
+        {
+            HandleMovement();
+        }
+        else
+        {
+            // Nullify horizontal velocity to stop slipping, retain vertical free fall
+            rb.velocity = Vector3.Project(rb.velocity, currentGravityDir.normalized);
+        }
 
         //gravity
         rb.AddForce(currentGravityDir.normalized * gravityMagnitude, ForceMode.Acceleration);
@@ -281,5 +314,39 @@ public class PlayerController : MonoBehaviour
         rb.MovePosition(pivotWorldPos + rotatedOffset);
     }
     
+    #endregion
+
+    #region Interactions
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Orb"))
+        {
+            CollectOrb(other.gameObject);
+        }
+        else if (other.gameObject.layer == LayerMask.NameToLayer("Void"))
+        {
+            OnPlayerDied?.Invoke();
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Orb"))
+        {
+            CollectOrb(collision.gameObject);
+        }
+        else if (collision.gameObject.layer == LayerMask.NameToLayer("Void"))
+        {
+            OnPlayerDied?.Invoke();
+        }
+    }
+
+    private void CollectOrb(GameObject orb)
+    {
+        Destroy(orb);
+        OnOrbCollected?.Invoke();
+    }
+
     #endregion
 }

@@ -8,7 +8,7 @@ public class CameraController : MonoBehaviour
 
     [Header("Input Settings")]
     public float mouseSensitivity = 2f;
-    public Vector2 pitchMinMax = new Vector2(-40, 85);
+    public Vector2 pitchMinMax = new Vector2(-20, 85);
 
     [Header("Collision Avoidance")]
     public LayerMask collisionMask; 
@@ -16,6 +16,22 @@ public class CameraController : MonoBehaviour
 
     private float pitch;
     private float yaw;
+    private bool canMoveCamera = true;
+
+    private void OnEnable()
+    {
+        GameManager.OnGameOver += HandleGameOver;
+    }
+
+    private void OnDisable()
+    {
+        GameManager.OnGameOver -= HandleGameOver;
+    }
+
+    private void HandleGameOver(string message)
+    {
+        canMoveCamera = false;
+    }
 
     private void Start()
     {
@@ -26,6 +42,8 @@ public class CameraController : MonoBehaviour
         {
             Vector3 euler = transform.eulerAngles;
             pitch = euler.x;
+            // Unity's eulerAngles returns 0 to 360. We must wrap it to -180 to 180 for our clamping to make sense.
+            if (pitch > 180f) pitch -= 360f;
             yaw = euler.y;
         }
     }
@@ -35,9 +53,12 @@ public class CameraController : MonoBehaviour
         if (!target) return;
 
         //input
-        yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
-        pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
-        pitch = Mathf.Clamp(pitch, pitchMinMax.x, pitchMinMax.y);
+        if (canMoveCamera)
+        {
+            yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
+            pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
+            pitch = Mathf.Clamp(pitch, pitchMinMax.x, pitchMinMax.y);
+        }
 
         //compute base orbit rotation relative to target's UP axis
         Quaternion alignment = Quaternion.FromToRotation(Vector3.up, target.up);
