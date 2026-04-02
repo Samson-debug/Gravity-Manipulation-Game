@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
     public Animator animator;
     public Transform hologramIndicator;
     public Transform headPoint;
+    public Transform cameraTransform;
 
     [Header("Gravity Transition")]
     public float headClearanceOffset = 0.1f;
@@ -37,6 +38,8 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false;
         rb.freezeRotation = true;
+
+        if(cameraTransform) cameraTransform = Camera.main.transform;
         
         if (hologramIndicator)
             hologramIndicator.gameObject.SetActive(false);
@@ -87,7 +90,22 @@ public class PlayerController : MonoBehaviour
         float moveHorizontal = Input.GetAxisRaw("Horizontal");
         float moveVertical = Input.GetAxisRaw("Vertical");
 
-        Vector3 localMoveDirection = (transform.right * moveHorizontal + transform.forward * moveVertical).normalized;
+        Vector3 localMoveDirection = Vector3.zero;
+
+        if (cameraTransform != null)
+        {
+            Vector3 camForward = cameraTransform.forward;
+            Vector3 camRight = cameraTransform.right;
+
+            Vector3 upDirection = -currentGravityDir.normalized;
+
+            camForward = Vector3.ProjectOnPlane(camForward, upDirection).normalized;
+            camRight = Vector3.ProjectOnPlane(camRight, upDirection).normalized;
+
+            localMoveDirection = (camRight * moveHorizontal + camForward * moveVertical).normalized;
+        }
+        else
+            localMoveDirection = (transform.right * moveHorizontal + transform.forward * moveVertical).normalized;
 
         // separate vertical velocity
         Vector3 currentVelocity = rb.velocity;
@@ -135,21 +153,30 @@ public class PlayerController : MonoBehaviour
     private void HandleGravityChange()
     {
         bool axisSelectedThisFrame = false;
+
+        Vector3 refForward = transform.forward;
+        Vector3 refRight = transform.right;
+
+        if (cameraTransform)
+        {
+            refForward = Vector3.ProjectOnPlane(cameraTransform.forward, transform.up).normalized;
+            refRight = Vector3.ProjectOnPlane(cameraTransform.right, transform.up).normalized;
+        }
         
         if (Input.GetKeyDown(KeyCode.UpArrow)){
-            targetGravityDir = GetClosestWorldAxis(transform.forward);
+            targetGravityDir = GetClosestWorldAxis(refForward);
             axisSelectedThisFrame = true;
         }
         else if (Input.GetKeyDown(KeyCode.DownArrow)){
-            targetGravityDir = GetClosestWorldAxis(-transform.forward);
+            targetGravityDir = GetClosestWorldAxis(-refForward);
             axisSelectedThisFrame = true;
         }
         else if (Input.GetKeyDown(KeyCode.LeftArrow)){
-            targetGravityDir = GetClosestWorldAxis(-transform.right);
+            targetGravityDir = GetClosestWorldAxis(-refRight);
             axisSelectedThisFrame = true;
         }
         else if (Input.GetKeyDown(KeyCode.RightArrow)){
-            targetGravityDir = GetClosestWorldAxis(transform.right);
+            targetGravityDir = GetClosestWorldAxis(refRight);
             axisSelectedThisFrame = true;
         }
 
