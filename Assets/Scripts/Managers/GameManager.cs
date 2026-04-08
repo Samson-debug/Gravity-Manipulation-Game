@@ -27,7 +27,6 @@ public class GameManager : MonoBehaviour
 
     private void HandleOrbCollected()
     {
-        // Don't count orbs if game already over
         if (isGameOver) return;
 
         collectedOrbs++;

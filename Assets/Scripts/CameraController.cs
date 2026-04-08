@@ -42,8 +42,6 @@ public class CameraController : MonoBehaviour
         {
             Vector3 euler = transform.eulerAngles;
             pitch = euler.x;
-            // Unity's eulerAngles returns 0 to 360. We must wrap it to -180 to 180 for our clamping to make sense.
-            if (pitch > 180f) pitch -= 360f;
             yaw = euler.y;
         }
     }

@@ -26,7 +26,7 @@ public class TimeManager : MonoBehaviour
     private void Start()
     {
         timeLeft = timeLimit;
-        
+
         ReportTime();
     }
 
@@ -44,8 +44,7 @@ public class TimeManager : MonoBehaviour
             OnTimeOut?.Invoke();
         }
         else
-        {
-            ReportTime();
+        {ortTime();
         }
     }
 

@@ -58,11 +58,6 @@ public class UIManager : MonoBehaviour
         if (gameOverText) gameOverText.text = message;
 
         if (playerHud) playerHud.SetActive(false);
-        else 
-        {
-            if (timerText) timerText.gameObject.SetActive(false);
-            if (orbCountText) orbCountText.gameObject.SetActive(false);
-        }
 
         // Free cursor for selecting restart button (in case previously locked)
         Cursor.lockState = CursorLockMode.None;
